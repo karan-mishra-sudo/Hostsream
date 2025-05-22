@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes 
+    # volumes:
+    #   - redis_data:/data
+    networks:
+      - app-network
+    depends_on:
+      - mongodb
+
+  backend:
+    image: karankumarmishra/hoststream-backend:latest
+    ports:
+      - "88:88"
+    networks:
+      - app-network
+    depends_on:
+      - redis
+
+  proxy-server:
+    image: karankumarmishra/proxy-server:latest
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+  frontend:
+    image: karankumarmishra/hoststream-frontend:latest
+    ports:
+      - "3000:3000"
+    depends_on:
+      - proxy-server
+      - backend
+    networks:
+      - app-network
+
+# volumes:
+#   redis_data:
+#   mongodb_data:
+
+networks:
+  app-network:
+    driver: bridge
